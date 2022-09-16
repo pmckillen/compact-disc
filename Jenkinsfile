@@ -10,19 +10,23 @@ pipeline {
         
         stage('Test App') {
             steps {
-                echo 'Testing App'
+                echo "Testing App"
             }
         }
             
         stage('Build Container') {
             steps {
-                sh 'docker-compose build'
+                sh "docker-compose build -t ${dockerImageTag}"
             }
         }   
             
          stage('Deploy to Openshift ') {
             steps {
-                echo 'Deploying to Openshift'
+                sh "oc login https://localhost:8443 --username admin --password admin --insecure-skip-tls-verify=true"
+                sh "oc project ${projectName} || oc new-project ${projectName}"
+                sh "oc delete all --selector app=${projectName} || echo 'Unable to delete all previous openshift resources'"
+                sh "oc new-app ${dockerImageTag} -l version=${version}"
+                sh "oc expose svc/${projectName}"
             }
         }
     }
